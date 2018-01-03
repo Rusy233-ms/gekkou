@@ -1,0 +1,6 @@
+# Directories
+/node_modules/
+
+# Specific Files
+plugin.js
+test.js

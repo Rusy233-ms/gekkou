@@ -1,0 +1,23 @@
+{
+  "dependencies": {
+    "eventemitter3": "^3.0.0",
+    "hikari": "^1.1.0",
+    "request-tsuki": "^1.0.1",
+    "socket.io-client": "^2.0.4"
+  },
+  "devDependencies": {
+    "eslint": "^4.14.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.8.0"
+  },
+  "name": "gekkou",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
