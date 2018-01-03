@@ -1,2 +1,2 @@
 ## gekkou
-Coming soon
+Big thanks to ElNobDeTfm for the original code! Coming soon
