@@ -7,12 +7,23 @@ class Gekkou extends EventEmitter {
   constructor(username, pass, site) {
     super();
     this.users = [];
+    this.username = username;
     this.login(username, pass);
     this.getChatInfo(site);
     this.connect(username);
   }
   use(dependency) {
     require(dependency)(this); // eslint-disable-line global-require, import/no-dynamic-require
+  }
+
+  sendMessage(text) {
+    this.socket.send(JSON.stringify({
+      attrs: {
+        msgType: 'chat',
+        name: this.username,
+        text,
+      },
+    }));
   }
 
   login(username, password) {
