@@ -6,24 +6,51 @@ const io = require('socket.io-client');
 class Gekkou extends EventEmitter {
   constructor(username, pass, site) {
     super();
-    this.users = [];
+    this.users = {};
+    this.socket = {};
     this.username = username;
     this.login(username, pass);
     this.getChatInfo(site);
     this.connect(username);
   }
-  use(dependency) {
-    require(dependency)(this); // eslint-disable-line global-require, import/no-dynamic-require
+  use(dependency, ...options) {
+    dependency(this, options); // eslint-disable-line global-require, import/no-dynamic-require
   }
-
-  sendMessage(text) {
+  /*
+  setStatus(status) {
     this.socket.send(JSON.stringify({
       attrs: {
-        msgType: 'chat',
-        name: this.username,
-        text,
+        command: 'setstatus',
+        msgType: 'command',
+        statusMessage: '@~gekkou',
+        statusState: status,
       },
     }));
+  }
+*/
+  sendMessage(text) {
+    this.on('socket', (socket) => {
+      socket.send(JSON.stringify({
+        attrs: {
+          msgType: 'chat',
+          name: this.username,
+          text,
+        },
+      }));
+    });
+  }
+
+  setAway() {
+    this.on('socket', (socket) => {
+      socket.send(JSON.stringify({
+        attrs: {
+          command: 'setstatus',
+          msgType: 'command',
+          statusMessage: '',
+          statusState: 'away',
+        },
+      }));
+    });
   }
 
   login(username, password) {
@@ -74,6 +101,7 @@ class Gekkou extends EventEmitter {
           roomId: d.roomId,
         },
       });
+      this.emit('socket', this.socket);
       this.socket.on('message', (payload) => {
         const socketevent = payload.event;
         const data = typeof payload.data === 'string' && payload.data.substr(0, 1) === '{' ?
