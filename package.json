@@ -11,13 +11,21 @@
     "eslint-plugin-import": "^2.8.0"
   },
   "name": "gekkou",
-  "version": "1.0.2",
+  "version": "1.1.1",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Unai Mengual <unai01@outlook.es>",
   "license": "ISC",
-  "description": ""
+  "description": "Big thanks to ElNobDeTfm for the original code! Coming soon",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/tsuki-studios/gekkou.git"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/tsuki-studios/gekkou/issues"
+  },
+  "homepage": "https://gitlab.com/tsuki-studios/gekkou#README"
 }
