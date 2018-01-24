@@ -52,7 +52,7 @@ class Gekkou extends EventEmitter {
     }));
   }
   /**
-   * Bans a user from chat. **Requires mod rights** (or above)
+   * Kicks a user from chat. **Requires mod rights** (or above)
    * @param {string} userToKick
    */
   kick(userToKick) {
@@ -173,13 +173,31 @@ class Gekkou extends EventEmitter {
             if (this.users[data.attrs.name]) delete this.users[data.attrs.name];
           }
           if (socketevent === 'openPrivateRoom') {
-            log(data.command);
+            log(data.attrs.command);
           }
           if (socketevent === 'initial') {
             const users = data.collections.users.models;
             users.forEach((user) => {
               this.users[user.attrs.name] = user.attrs;
             });
+          }
+          if (socketevent === 'kick') {
+            const kick = {
+              moderator: data.attrs.moderatorName,
+              kicked: data.attrs.kickedUserName
+            }
+            this.emit('kick', kick, this, log);
+            if (this.users[data.attrs.kickedUserName]) delete this.users[data.attrs.kickedUserName];
+          }
+          if (socketevent === 'ban') {
+            const ban = {
+              moderator: data.attrs.moderatorName,
+              banned: data.attrs.kickedUserName,
+              time: data.attrs.time,
+              reason: data.attrs.reason
+            }
+            this.emit('ban', ban, this, log);
+            if (this.users[data.attrs.kickedUserName]) delete this.users[data.attrs.kickedUserName];
           }
         });
       });
