@@ -8,6 +8,7 @@ class Gekkou extends EventEmitter {
     super();
     this.users = {};
     this.socket = {};
+    this.pms = {};
     this.username = username;
     this.password = pass;
     this.site = site;
@@ -20,7 +21,7 @@ class Gekkou extends EventEmitter {
  * @param {array} options - An array of options, guess you already know?
  */
   use(dependency, ...options) {
-    dependency(this, options); // eslint-disable-line global-require, import/no-dynamic-require
+    require(dependency)(this, options); // eslint-disable-line global-require, import/no-dynamic-require
   }
   /**
    * Sends a message, with less or equal than 1000 characters.
@@ -173,7 +174,71 @@ class Gekkou extends EventEmitter {
             if (this.users[data.attrs.name]) delete this.users[data.attrs.name];
           }
           if (socketevent === 'openPrivateRoom') {
-            log(data.attrs.command);
+            if (!this.pms[data.attrs.roomId]) {
+              this.pms[data.attrs.roomId] = {
+                socket: {},
+                users: {},
+                ready: false,
+              };
+              this.pms[data.attrs.roomId].socket = io.connect('http://chat.wikia-services.com', {
+                query: {
+                  name: this.username,
+                  key: this.chatInfo.key,
+                  serverId: this.chatInfo.wikiId,
+                  wikiId: this.chatInfo.wikiId,
+                  roomId: data.attrs.roomId,
+                },
+              });
+              this.pms[data.attrs.roomId].socket.on('message', (payload) => {
+                const socketeventPM = payload.event;
+                const dataPM = typeof payload.data === 'string' && payload.data.substr(0, 1) === '{' ?
+                  JSON.parse(payload.data) : payload.data;
+                if (socketeventPM === 'join') {
+                  if (!this.pms[data.attrs.roomId].ready && dataPM.attrs.name === this.username) {
+                    this.pms[data.attrs.roomId].ready = true;
+                    this.emit('pm:ready', log);
+                    this.pms[data.attrs.roomId].users = data.attrs.users;
+                    this.pms[data.attrs.roomId].socket.send(JSON.stringify({
+                      attrs: {
+                        msgType: 'command',
+                        command: 'initquery',
+                      },
+                    }));
+                  }
+                }
+                if (socketeventPM === 'part') {
+                  this.emit('pm:part', dataPM.attrs.name, this, log);
+                  if (this.pms[data.attrs.roomId].users[dataPM.attrs.name]) delete this.pms[dataPM.attrs.roomId].users[data.attrs.name];
+                }
+                if (socketeventPM === 'chat:add') {
+                  const message = {
+                    author: {
+                      avatar: dataPM.attrs.avatarSrc,
+                      name: dataPM.attrs.name,
+                    },
+                    continued: dataPM.attrs.continued,
+                    id: dataPM.attrs.id,
+                    reply: (text) => {
+                      if (text.length <= 1000) {
+                        this.pms[data.attrs.roomId].socket.send(JSON.stringify({
+                          attrs: {
+                            msgType: 'chat',
+                            name: this.username,
+                            text,
+                          },
+                        }));
+                      } else {
+                        log('Message must be less than 1000 characters!', 'ERROR');
+                      }
+                    },
+                    timestamp: dataPM.attrs.timeStamp,
+                    text: dataPM.attrs.text,
+                  };
+                  this.emit('pm:message', message, this, log);
+                }
+              });
+            }
+
           }
           if (socketevent === 'initial') {
             const users = data.collections.users.models;
@@ -184,8 +249,8 @@ class Gekkou extends EventEmitter {
           if (socketevent === 'kick') {
             const kick = {
               moderator: data.attrs.moderatorName,
-              kicked: data.attrs.kickedUserName
-            }
+              kicked: data.attrs.kickedUserName,
+            };
             this.emit('kick', kick, this, log);
             if (this.users[data.attrs.kickedUserName]) delete this.users[data.attrs.kickedUserName];
           }
@@ -194,8 +259,8 @@ class Gekkou extends EventEmitter {
               moderator: data.attrs.moderatorName,
               banned: data.attrs.kickedUserName,
               time: data.attrs.time,
-              reason: data.attrs.reason
-            }
+              reason: data.attrs.reason,
+            };
             this.emit('ban', ban, this, log);
             if (this.users[data.attrs.kickedUserName]) delete this.users[data.attrs.kickedUserName];
           }
