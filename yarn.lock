@@ -190,7 +190,7 @@ chalk@^1.1.3:
     strip-ansi "^3.0.0"
     supports-color "^2.0.0"
 
-chalk@^2.0.0, chalk@^2.1.0, chalk@^2.3.0:
+chalk@^2.0.0, chalk@^2.1.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-2.3.0.tgz#b5ea48efc9c1793dccc9b4767c93914d3f2d52ba"
   dependencies:
@@ -425,7 +425,7 @@ eslint-visitor-keys@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/eslint-visitor-keys/-/eslint-visitor-keys-1.0.0.tgz#3f3180fb2e291017716acb4c9d6d5b5c34a6a81d"
 
-eslint@^4.14.0:
+eslint@^4.16.0:
   version "4.16.0"
   resolved "https://registry.yarnpkg.com/eslint/-/eslint-4.16.0.tgz#934ada9e98715e1d7bbfd6f6f0519ed2fab35cc1"
   dependencies:
@@ -498,10 +498,6 @@ estraverse@^4.0.0, estraverse@^4.1.0, estraverse@^4.1.1:
 esutils@^2.0.2:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/esutils/-/esutils-2.0.2.tgz#0abf4f1caa5bcb1f7a9d8acc6dea4faaa04bac9b"
-
-eventemitter3@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-3.0.0.tgz#fc29ecf233bd19fbd527bb4089bbf665dc90c1e3"
 
 extend@~3.0.1:
   version "3.0.1"
@@ -594,14 +590,6 @@ functional-red-black-tree@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/functional-red-black-tree/-/functional-red-black-tree-1.0.1.tgz#1b0ab3bd553b2a0d6399d29c0e3ea0b252078327"
 
-gekkou-filter@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/gekkou-filter/-/gekkou-filter-1.0.1.tgz#ca42ba1b56993ddbca95156eed45e8720be2d210"
-
-gekkou-logger@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/gekkou-logger/-/gekkou-logger-1.0.0.tgz#27b77093dc41324de5571e969f3af3fd03054276"
-
 getpass@^0.1.1:
   version "0.1.7"
   resolved "https://registry.yarnpkg.com/getpass/-/getpass-0.1.7.tgz#5eff8e3e684d569ae4cb2b1282604e8ba62149fa"
@@ -620,8 +608,8 @@ glob@^7.0.3, glob@^7.0.5, glob@^7.1.2:
     path-is-absolute "^1.0.0"
 
 globals@^11.0.1:
-  version "11.2.0"
-  resolved "https://registry.yarnpkg.com/globals/-/globals-11.2.0.tgz#aa2ece052a787563ba70a3dcd9dc2eb8a9a0488c"
+  version "11.3.0"
+  resolved "https://registry.yarnpkg.com/globals/-/globals-11.3.0.tgz#e04fdb7b9796d8adac9c8f64c14837b2313378b0"
 
 globby@^5.0.0:
   version "5.0.0"
@@ -683,12 +671,6 @@ hawk@~6.0.2:
     cryptiles "3.x.x"
     hoek "4.x.x"
     sntp "2.x.x"
-
-hikari@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/hikari/-/hikari-1.1.0.tgz#8ee36e71f7704b07c12e28c03bde5f2bbb705de5"
-  dependencies:
-    chalk "^2.3.0"
 
 hoek@4.x.x:
   version "4.2.0"
@@ -1132,13 +1114,6 @@ request-promise-native@^1.0.5:
     request-promise-core "1.1.1"
     stealthy-require "^1.1.0"
     tough-cookie ">=2.3.3"
-
-request-tsuki@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/request-tsuki/-/request-tsuki-1.0.1.tgz#4d2b7e36020032030f3379b99da089a1802a6dc6"
-  dependencies:
-    request "^2.83.0"
-    request-promise-native "^1.0.5"
 
 request@^2.83.0:
   version "2.83.0"

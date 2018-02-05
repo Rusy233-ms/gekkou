@@ -1,31 +1,43 @@
 {
-  "dependencies": {
-    "eventemitter3": "^3.0.0",
-    "hikari": "^1.1.0",
-    "request-tsuki": "^1.0.1",
-    "socket.io-client": "^2.0.4"
-  },
-  "devDependencies": {
-    "eslint": "^4.14.0",
-    "eslint-config-airbnb-base": "^12.1.0",
-    "eslint-plugin-import": "^2.8.0"
-  },
   "name": "gekkou",
-  "version": "1.1.1",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "version": "2.0.0",
+  "description": "It's time to ditch chatbot-rb",
+  "main": "./",
+  "engines": {
+    "node": ">=4.0.0"
   },
-  "keywords": [],
-  "author": "Unai Mengual <unai01@outlook.es>",
-  "license": "ISC",
-  "description": "Big thanks to ElNobDeTfm for the original code! Coming soon",
+  "scripts": {
+    "eslint": "eslint --fix lib index.js && echo \"\u001b[1m\u001b[32mOK\u001b[39m\u001b[22m\" || echo \"\u001b[1m\u001b[31mNot OK\u001b[39m\u001b[22m\""
+  },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@gitlab.com/tsuki-studios/gekkou.git"
+    "url": "git+https://gitlab.com/tsuki-studios/gekkou.git"
+  },
+  "keywords": [
+    "api",
+    "wikia",
+    "fandom",
+    "gekkou",
+    "tsuki-studios"
+  ],
+  "author": "Tsuki Studios",
+  "contributors": [
+    "blehh",
+    "Unai01",
+    "TheNozomi"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "request": "^2.83.0",
+    "request-promise-native": "^1.0.5",
+    "socket.io-client": "^2.0.4"
   },
   "bugs": {
     "url": "https://gitlab.com/tsuki-studios/gekkou/issues"
   },
-  "homepage": "https://gitlab.com/tsuki-studios/gekkou#README"
+  "homepage": "https://gitlab.com/tsuki-studios/gekkou#readme",
+  "directories": {
+    "example": "examples",
+    "lib": "lib"
+  }
 }

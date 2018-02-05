@@ -4,3 +4,6 @@ npm-debug.log
 package-lock.json
 .env
 .vscode
+examples
+.eslintrc.yml
+.jshintrc
