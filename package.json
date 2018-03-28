@@ -1,6 +1,6 @@
 {
   "name": "gekkou",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "It's time to ditch chatbot-rb",
   "main": "./",
   "engines": {
