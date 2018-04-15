@@ -4,3 +4,6 @@ npm-debug.log
 package-lock.json
 .env
 .vscode
+yarn.lock
+yarn-error.log
+Gruntfile.js

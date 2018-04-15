@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<title>Gekkou Source: structures/Room.js</title>
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+	<link type="text/css" rel="stylesheet" href="styles/sunlight.default.css">
+
+	<link type="text/css" rel="stylesheet" href="styles/site.paper.css">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-default navbar-fixed-top navbar-inverse">
+<div class="container">
+	<div class="navbar-header">
+		<a class="navbar-brand" href="index.html">Gekkou</a>
+		<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#topNavigation">
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+        </button>
+	</div>
+	<div class="navbar-collapse collapse" id="topNavigation">
+		<ul class="nav navbar-nav">
+			
+			<li class="dropdown">
+				<a href="classes.list.html" class="dropdown-toggle" data-toggle="dropdown">Classes<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="Client.html">Client</a></li><li><a href="Message.html">Message</a></li><li><a href="Room.html">Room</a></li><li><a href="User.html">User</a></li>
+				</ul>
+			</li>
+			
+			<li class="dropdown">
+				<a href="events.list.html" class="dropdown-toggle" data-toggle="dropdown">Events<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="Client.html#event:disconnect">Client#event:disconnect</a></li><li><a href="Client.html#event:login">Client#event:login</a></li><li><a href="Client.html#event:ready">Client#event:ready</a></li><li><a href="Client.html#event:roomDisconnect">Client#event:roomDisconnect</a></li><li><a href="Client.html#event:roomReady">Client#event:roomReady</a></li><li><a href="Room.html#event:ready">Room#event:ready</a></li>
+				</ul>
+			</li>
+			
+		</ul>
+        
+            <div class="col-sm-3 col-md-3">
+                <form class="navbar-form" role="search">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Search" name="q" id="search-input">
+                        <div class="input-group-btn">
+                            <button class="btn btn-default" id="search-submit"><i class="glyphicon glyphicon-search"></i></button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        
+	</div>
+
+</div>
+</div>
+
+
+<div class="container" id="toc-content">
+<div class="row">
+
+	
+	<div class="col-md-12">
+	
+		<div id="main">
+			
+
+		<h1 class="page-title">Source: structures/Room.js</h1>
+    
+<section>
+    <article>
+        <pre
+            class="sunlight-highlight-javascript linenums">const Collection = require("../util/Collection");
+const Message = require("./Message");
+const Socket = require("socket.io-client");
+const User = require("./User");
+
+var EventEmitter;
+
+try {
+    EventEmitter = require("eventemitter3");
+} catch (error) {
+    EventEmitter = require("events").EventEmitter;
+}
+
+/**
+ * Represents a room
+ * @prop {String} id The ID of the room
+ * @prop {String} site The site name of the room
+ * @prop {Collection&lt;User>} users A collection of users that are in the room
+ * @prop {Number} userCount The number count of the users in the room
+ * @prop {Number} latency The latency of the room
+ */
+class Room extends EventEmitter {
+    /**
+     * 
+     * @param {String} name The site name of the room 
+     */
+    constructor(name, client) {
+        super();
+        this.id = name;
+        this._client = client;
+        this.users = new Collection(User);
+        this.userCount = 0;
+        this.messages = new Collection(Message, 1000);
+    }
+
+    get latency() {
+        return this._lastPingSent &amp;&amp; this._lastPingReceived ? this._lastPingReceived - this._lastPingSent : Infinity;
+    }
+
+    /**
+     * Tell the bot to start a connection to the room
+     */
+    connect() {
+        if (this.status === "ready") {
+            Promise.reject("Existing connection detected");
+        } else {
+            if (typeof this.id === "number") {
+                this.initializeSocket();
+            } else {
+                this.getRoomInfo().then(() => this.initializeSocket());
+            }
+        }
+    }
+
+    getRoomInfo() {
+        return new Promise((resolve) => {
+            this._client.request("GET", `http://${this.id}.wikia.com/api.php`, {
+                action: "query",
+                meta: "siteinfo",
+                siprop: "wikidesc",
+                format: "json",
+            }).then((body) => {
+                this._client.request("GET", `http://${this.id}.wikia.com/wikia.php`, {
+                    controller: "Chat",
+                    format: "json",
+                }).then((chat) => {
+                    this.server = body.query.wikidesc.id;
+                    this.id = chat.roomId;
+                    this.key = chat.chatkey;
+                    resolve();
+                });
+            });
+        });
+    }
+
+    initializeSocket() {
+        this.socket = Socket.connect(this._client.options.forcehttp === true ? "http://chat.wikia-services.com" : "https://chat.wikia-services.com", {
+            query: {
+                name: this._client.username,
+                serverId: this.server,
+                roomId: this.id,
+                key: this.key
+            }
+        });
+        this.socket
+            .on("connect", () => {
+                this.ready = true;
+                /**
+                 * Fired when the room turns ready
+                 * @event Room#ready
+                 */
+                super.emit("ready");
+                this.status = "ready";
+                this.send({
+                    attrs: {
+                        msgType: "command",
+                        command: "initquery"
+                    }
+                });
+                this._lastPingAck = true;
+            })
+            .on("message", (fn) => {
+                const event = fn.event;
+                const data = typeof fn.data === "string" &amp;&amp; /^{|}$/.test(fn.data) ? JSON.parse(fn.data) : fn.data;
+                switch (event) {
+                    case "chat:add":
+                        data.room = this;
+                        this.emit("messageCreate", this.messages.add(new Message(data, this._client)));
+                        break;
+                    case "join":
+                        if (data.attrs.name !== this._client.username) {
+                            data.id = data.attrs.name;
+                            data.room = this;
+                            if (!this.users.get(data.id)) {
+                                this.emit("userJoin", this.users.add(data, this._client));
+                                ++this.userCount;
+                                ++this._client.userCount;
+                            }
+                        }
+                        break;
+                    case "logout":
+                        data.id = data.attrs.name;
+                        data.room = this;
+                        if (this.users.get(data.id)) {
+                            this.emit("userPart", this.users.remove(data));
+                            --this._client.userCount;
+                            --this.userCount;
+                        }
+                        break;
+                    case "updateUser":
+                        data.id = data.attrs.name;
+                        data.room = this;
+                        this.emit("userUpdate", this.users.update(data, this._client));
+                        break;
+                    case "kick":
+                        data.id = data.attrs.kickedUserName;
+                        this.emit("userKick", this.users.remove(data), this.users.get(data.attrs.moderatorName));
+                        --this._client.userCount;
+                        --this.userCount;
+                        break;
+                    case "initial": {
+                            const users = data.collections.users.models;
+                            for (var user of users) {
+                                user.id = user.attrs.name;
+                                this.users.add(user, this._client);
+                                ++this.userCount;
+                                ++this._client.userCount;
+                            }
+                            const messages = data.collections.chats.models;
+                            for (var message of messages) {
+                                message.room = this;
+                                this.messages.add(new Message(message, this._client));
+                            }
+                        }
+                        break;
+                    case "openPrivateRoom":
+                        console.log(data);
+                        break;
+                }
+            })
+            .on("ping", () => {
+                if (!this._lastPingAck) {
+                    return this.disconnect(new Error("Server didn't acknowledge previous ping, possible lost connection"));
+                }
+
+                this._lastPingAck = false;
+                this._lastPingSent = new Date().getTime();
+            })
+            .on("pong", () => {  
+                this._lastPingAck = true;
+                this._lastPingReceived = new Date().getTime();
+            })
+            .on("disconnect", () => {
+                super.emit("disconnect");
+            });
+    }
+    /**
+     * Tell the client to disconnect the room
+     */
+    disconnect(error) {
+        if (this.status === "ready") {
+            this.send({
+                attrs: {
+                  msgType: "command",
+                  command: "logout",
+                }
+            });
+            this.emit("debug", error | null);
+        } else {
+            Promise.reject("There's no connection to the room");
+        }
+    }
+    /**
+     * Creates a message to the room
+     * @param {String} content 
+     */
+    createMessage(content) {
+        this.send({
+            attrs: {
+                msgType: "chat",
+                name: this._client.username,
+                text: content,
+            }
+        });
+    }
+
+    /**
+     * Update the bot's status in the room
+     * @param {String} status Sets the bot's status, either `here` or `away` 
+     */
+    editStatus(status) {
+        this.send({
+            attrs: {
+                msgType: "command",
+                command: "setstatus",
+                statusState: status
+            }
+        });
+    }
+    getMessages(limit) {
+        return this._client.rooms.getMessages.call(this._client.rooms, this.id, limit);
+    }
+    /**
+     * Kick a member from the room
+     * @param {String} member The name of the member
+     */
+    kick(member) {
+        if (/sysop|chatmoderator/.test(this.users.get(this._client.username).groups)) {
+            if (!/sysop|chatmoderator/.test(this.users.get(member).groups)) {
+                this.send({
+                    attrs: {
+                        msgType: "command",
+                        command: "kick",
+                        userToKick: member
+                    }
+                });
+            } else {
+                Promise.reject("Client is lower or same in rights");
+            }
+        } else {
+            Promise.reject("Missing permissions");
+        }
+    }
+    /**
+     * Ban an user in the room
+     * @param {String} user The user to ban
+     * @param {String} reason The reason to ban the user
+     * @param {Number} time The length of the ban (in milliseconds; default to one day)
+     */
+    ban(user, reason = "Bad behavior", time = 86400) {
+        this.send({
+            attrs: {
+                msgType: "command",
+                command: "ban",
+                userToBan: user,
+                reason,
+                time
+            }
+        });
+    }
+    /**
+     * Send a 'message' event
+     * @param {Object} attrs The attributes object
+     * @returns {Promise&lt;String>}
+     */
+    send(attrs, ack) {
+        if (typeof attrs !== "object") return;
+        return new Promise((resolve, reject) => {
+            attrs = JSON.stringify(attrs);
+            if (this.status === "ready") {
+                this.socket.send(attrs, ack);
+                resolve(attrs);
+            } else {
+                reject("Room is not ready");
+            }
+        });
+    }
+
+    emit(event) {
+        this._client.emit.apply(this._client, arguments);
+        if (event !== "error" || this.listeners("error").length > 0) {
+            super.emit.apply(this, arguments);
+        }
+    }
+}
+
+module.exports = Room;</pre>
+    </article>
+</section>
+
+
+
+
+
+		</div>
+	</div>
+
+	<div class="clearfix"></div>
+
+	
+
+</div>
+</div>
+
+
+    <div class="modal fade" id="searchResults">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title">Search results</h4>
+          </div>
+          <div class="modal-body"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div>
+
+
+<footer>
+
+
+	<span class="copyright">
+	Tsuki Studios © 2017-2018.
+	</span>
+
+<span class="jsdoc-message">
+	Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a>
+	
+		on Sun Apr 15th 2018
+	
+	using the <a href="https://github.com/docstrap/docstrap">DocStrap template</a>.
+</span>
+</footer>
+
+<script src="scripts/docstrap.lib.js"></script>
+<script src="scripts/toc.js"></script>
+
+    <script type="text/javascript" src="scripts/fulltext-search-ui.js"></script>
+
+
+<script>
+$( function () {
+	$( "[id*='$']" ).each( function () {
+		var $this = $( this );
+
+		$this.attr( "id", $this.attr( "id" ).replace( "$", "__" ) );
+	} );
+
+	$( ".tutorial-section pre, .readme-section pre, pre.prettyprint.source" ).each( function () {
+		var $this = $( this );
+
+		var example = $this.find( "code" );
+		exampleText = example.html();
+		var lang = /{@lang (.*?)}/.exec( exampleText );
+		if ( lang && lang[1] ) {
+			exampleText = exampleText.replace( lang[0], "" );
+			example.html( exampleText );
+			lang = lang[1];
+		} else {
+			var langClassMatch = example.parent()[0].className.match(/lang\-(\S+)/);
+			lang = langClassMatch ? langClassMatch[1] : "javascript";
+		}
+
+		if ( lang ) {
+
+			$this
+			.addClass( "sunlight-highlight-" + lang )
+			.addClass( "linenums" )
+			.html( example.html() );
+
+		}
+	} );
+
+	Sunlight.highlightAll( {
+		lineNumbers : true,
+		showMenu : true,
+		enableDoclinks : true
+	} );
+
+	$.catchAnchorLinks( {
+        navbarOffset: 10
+	} );
+	$( "#toc" ).toc( {
+		anchorName  : function ( i, heading, prefix ) {
+			return $( heading ).attr( "id" ) || ( prefix + i );
+		},
+		selectors   : "#toc-content h1,#toc-content h2,#toc-content h3,#toc-content h4",
+		showAndHide : false,
+		smoothScrolling: true
+	} );
+
+	$( "#main span[id^='toc']" ).addClass( "toc-shim" );
+	$( '.dropdown-toggle' ).dropdown();
+
+    $( "table" ).each( function () {
+      var $this = $( this );
+      $this.addClass('table');
+    } );
+
+} );
+</script>
+
+
+
+<!--Navigation and Symbol Display-->
+
+
+<!--Google Analytics-->
+
+
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            SearcherDisplay.init();
+        });
+    </script>
+
+
+</body>
+</html>

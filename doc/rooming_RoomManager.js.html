@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<title>Gekkou Source: rooming/RoomManager.js</title>
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+	<link type="text/css" rel="stylesheet" href="styles/sunlight.default.css">
+
+	<link type="text/css" rel="stylesheet" href="styles/site.paper.css">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-default navbar-fixed-top navbar-inverse">
+<div class="container">
+	<div class="navbar-header">
+		<a class="navbar-brand" href="index.html">Gekkou</a>
+		<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#topNavigation">
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+        </button>
+	</div>
+	<div class="navbar-collapse collapse" id="topNavigation">
+		<ul class="nav navbar-nav">
+			
+			<li class="dropdown">
+				<a href="classes.list.html" class="dropdown-toggle" data-toggle="dropdown">Classes<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="Client.html">Client</a></li><li><a href="Message.html">Message</a></li><li><a href="Room.html">Room</a></li><li><a href="User.html">User</a></li>
+				</ul>
+			</li>
+			
+			<li class="dropdown">
+				<a href="events.list.html" class="dropdown-toggle" data-toggle="dropdown">Events<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="Client.html#event:disconnect">Client#event:disconnect</a></li><li><a href="Client.html#event:login">Client#event:login</a></li><li><a href="Client.html#event:ready">Client#event:ready</a></li><li><a href="Client.html#event:roomDisconnect">Client#event:roomDisconnect</a></li><li><a href="Client.html#event:roomReady">Client#event:roomReady</a></li><li><a href="Room.html#event:ready">Room#event:ready</a></li>
+				</ul>
+			</li>
+			
+		</ul>
+        
+            <div class="col-sm-3 col-md-3">
+                <form class="navbar-form" role="search">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Search" name="q" id="search-input">
+                        <div class="input-group-btn">
+                            <button class="btn btn-default" id="search-submit"><i class="glyphicon glyphicon-search"></i></button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        
+	</div>
+
+</div>
+</div>
+
+
+<div class="container" id="toc-content">
+<div class="row">
+
+	
+	<div class="col-md-12">
+	
+		<div id="main">
+			
+
+		<h1 class="page-title">Source: rooming/RoomManager.js</h1>
+    
+<section>
+    <article>
+        <pre
+            class="sunlight-highlight-javascript linenums">const Collection = require("../util/Collection");
+const Room = require("../structures/Room");
+
+class RoomManager extends Collection {
+    constructor(client) {
+        super(Room);
+        this._client = client;
+        this.connectQueue = [];
+    }
+
+    connect() {
+        for (var site of this.connectQueue) {
+            var room = this.get(site);
+
+            if (!room) {
+                room = this.add(new Room(site, this._client));
+            }
+
+            if (room.status === "ready") return;
+
+            room.connect();
+
+            room.on("ready", () => {
+                /**
+                 * Fired when a room turns ready
+                 * @event Client#roomReady
+                 * @prop {Number} id the ID of the room
+                 */
+                this._client.emit("roomReady", room.id);
+                if (this._client.ready) {
+                    return;
+                }
+                for (var other of this) {
+                    if (!other[1].ready) {
+                        return;
+                    }
+                }
+                this._client.ready = true;
+                this._client.startTime = Date.now();
+                /**
+                 * Fired when all rooms turn ready
+                 * @event Client#ready
+                 */
+                this._client.emit("ready");
+            }).on("disconnect", (error) => {
+                /**
+                 * Fired when a room disconnects
+                 * @event Client#roomDisconnect
+                 * @prop {Error?} error The error, if any
+                 * @prop {Number} id The ID of the room
+                 */
+                this._client.emit("roomDisconnect", error, room.id);
+                for (var other of this) {
+                    if (other[1].ready) {
+                        return;
+                    }
+                }
+                this._client.ready = false;
+                this._client.startTime = 0;
+                /**
+                 * Fired when all rooms disconnect
+                 * @event Client#disconnect
+                 */
+                this._client.emit("disconnect");
+            });
+        }
+    }
+
+    spawn(site) {
+        var room = this.get(room);
+        if (!room) {
+            this.add(new Room(site, this._client));
+            this.connectQueue.push(site);
+        }
+    }
+
+    createMessage(room, content) {
+        return new Promise((resolve, reject) => {
+            if (!(room || content)) reject("No room or content specified");
+            room = this.find((r) => (r.name || r.id) == room);
+            if (!room) reject("Inexistent room");
+            room.createMessage(content);
+            resolve();
+        });
+    }
+
+    getMessages(room, limit = 50) {
+        return new Promise((resolve, reject) => {
+            if (!(room)) reject("No room specified");
+            room = this.find((r) => (r.name || r.id) == room);
+            if (!room) reject("Inexistent room");
+            const messages = Array.from(room.messages);
+            var logs = [];
+            if (limit &lt;= messages.length) {
+                return resolve(messages.slice(messages.length - limit, messages.length).map((message) => message[1]).concat(logs));
+            }
+            limit -= messages.length;
+            logs = messages.map((message) => message[1]).concat(logs);
+            if (messages.length &lt; 100) {
+                return resolve(logs);
+            }
+            reject();
+        });
+    }
+
+    editStatus(status) {
+        this.forEach((room) => {
+            room.editStatus(status);
+        });
+    }
+
+    toJSON() {
+        var base = {};
+        for (var key in this) {
+            if (key in this &amp;&amp; !key.startsWith("_")) {
+                if (typeof this[key].toJSON === "function") {
+                    base[key] = this[key].toJSON();
+                } else {
+                    base[key] = this[key];
+                }
+            }
+        }
+        return base;
+    }
+}
+
+module.exports = RoomManager;</pre>
+    </article>
+</section>
+
+
+
+
+
+		</div>
+	</div>
+
+	<div class="clearfix"></div>
+
+	
+
+</div>
+</div>
+
+
+    <div class="modal fade" id="searchResults">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title">Search results</h4>
+          </div>
+          <div class="modal-body"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div>
+
+
+<footer>
+
+
+	<span class="copyright">
+	Tsuki Studios © 2017-2018.
+	</span>
+
+<span class="jsdoc-message">
+	Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a>
+	
+		on Sun Apr 15th 2018
+	
+	using the <a href="https://github.com/docstrap/docstrap">DocStrap template</a>.
+</span>
+</footer>
+
+<script src="scripts/docstrap.lib.js"></script>
+<script src="scripts/toc.js"></script>
+
+    <script type="text/javascript" src="scripts/fulltext-search-ui.js"></script>
+
+
+<script>
+$( function () {
+	$( "[id*='$']" ).each( function () {
+		var $this = $( this );
+
+		$this.attr( "id", $this.attr( "id" ).replace( "$", "__" ) );
+	} );
+
+	$( ".tutorial-section pre, .readme-section pre, pre.prettyprint.source" ).each( function () {
+		var $this = $( this );
+
+		var example = $this.find( "code" );
+		exampleText = example.html();
+		var lang = /{@lang (.*?)}/.exec( exampleText );
+		if ( lang && lang[1] ) {
+			exampleText = exampleText.replace( lang[0], "" );
+			example.html( exampleText );
+			lang = lang[1];
+		} else {
+			var langClassMatch = example.parent()[0].className.match(/lang\-(\S+)/);
+			lang = langClassMatch ? langClassMatch[1] : "javascript";
+		}
+
+		if ( lang ) {
+
+			$this
+			.addClass( "sunlight-highlight-" + lang )
+			.addClass( "linenums" )
+			.html( example.html() );
+
+		}
+	} );
+
+	Sunlight.highlightAll( {
+		lineNumbers : true,
+		showMenu : true,
+		enableDoclinks : true
+	} );
+
+	$.catchAnchorLinks( {
+        navbarOffset: 10
+	} );
+	$( "#toc" ).toc( {
+		anchorName  : function ( i, heading, prefix ) {
+			return $( heading ).attr( "id" ) || ( prefix + i );
+		},
+		selectors   : "#toc-content h1,#toc-content h2,#toc-content h3,#toc-content h4",
+		showAndHide : false,
+		smoothScrolling: true
+	} );
+
+	$( "#main span[id^='toc']" ).addClass( "toc-shim" );
+	$( '.dropdown-toggle' ).dropdown();
+
+    $( "table" ).each( function () {
+      var $this = $( this );
+      $this.addClass('table');
+    } );
+
+} );
+</script>
+
+
+
+<!--Navigation and Symbol Display-->
+
+
+<!--Google Analytics-->
+
+
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            SearcherDisplay.init();
+        });
+    </script>
+
+
+</body>
+</html>
