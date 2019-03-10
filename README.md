@@ -23,8 +23,11 @@ Create a directory for your bot and change to that directory in your command lin
 ### Example: Ping Pong
 
 ```js
-const { Client } = require("gekkou");
-const bot = new Client("some_username", "some_password");
+const { Client } = require('gekkou');
+const bot = new Client({
+	username: 'bot username',
+	password: 'bot password'
+});
 
 bot.on("ready", () => {
     console.log("Ready!"); // logs ready
@@ -40,7 +43,19 @@ bot.on("messageCreate", (msg) => {
     }
 });
 
-bot.connect("ur.wiki", "ur.other-wiki"); // if u want more sites to connect, pass them as parameters
+bot.connect(
+	{
+		domain: 'wikia',
+		wiki: 'community'
+	},
+	{
+		domain: 'fandom',
+		wiki: 'steven-universe',
+		lang: 'es'
+	}
+	).catch((err) => {
+	// do error handling here
+});
 ```
 
 More examples can be found in the [examples folder](/examples).

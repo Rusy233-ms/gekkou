@@ -1,7 +1,7 @@
 const Client = require("./lib/Client");
 
-function Gekkou(username, password, options) {
-    return new Client(username, password, options);
+function Gekkou(options) {
+    return new Client(options);
 }
 
 Gekkou.Base = require("./lib/structures/Base");

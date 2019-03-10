@@ -1,5 +1,8 @@
 const Client = require("../index.js");
-const bot = new Client("user", "pass");
+const bot = new Client({
+	username: 'bot username',
+	password: 'bot password'
+});
 
 bot.on("ready", () => {
     console.log("Ready!"); // logs ready
@@ -15,4 +18,16 @@ bot.on("messageCreate", (msg) => {
     }
 });
 
-bot.connect("onewiki", "es.anotherwiki"); // if u want more sites to connect, pass them as parameters
+bot.connect(
+	{
+		domain: 'wikia',
+		wiki: 'community'
+	},
+	{
+		domain: 'fandom',
+		wiki: 'steven-universe',
+		lang: 'es'
+	}
+	).catch((err) => {
+	// do error handling here
+});
